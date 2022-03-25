@@ -1,0 +1,135 @@
+#!/bin/bash
+
+usage () {
+	echo "Incorrect Number of command line arguments" >&2
+	exit 1
+}
+
+error_out () {
+	echo "Missing or unreadable .out files" >&2
+	exit 1
+}
+
+if [ $# -ne 2 ]; then
+	usage
+fi
+
+for test in $(cat $1); do
+	if [ -r ${test}.out ]; then
+	    if [ -e ${test}.args ]; then
+            if [ -e ${test}.in ]; then
+			    TempOut="$(mktemp)";
+				TempError="$(mktemp)";
+                ${2} $(cat ${test}.args) < ${test}.in > $TempOut 2> $TempError;
+			    Success_out=$(diff ${test}.out $TempOut | wc -l | cat);
+				Success_err=0;
+				if [ -e ${test}.stderr ]; then
+					Success_err=$(diff ${test}.stderr $TempError | wc -l | cat);
+				fi
+			    if [ $Success_out -ne 0 ]; then
+				    echo "Test failed: ${test}";
+				    echo "Args:";
+				    cat ${test}.args;
+                    echo "Input:";
+                    cat ${test}.in;
+				    echo "Expected:";
+				    cat ${test}.out;
+				    echo "Actual:";
+			    	cat "$TempOut";
+					if [ $Success_err -ne 0 ]; then
+						echo "Expected error message:";
+						cat ${test}.err;
+						echo "Actual error message:";
+						cat "$TempError";
+					fi
+			    fi
+			    rm "$TempOut";
+				rm "$TempError";
+            else
+                TempOut="$(mktemp)";
+				TempError="$(mktemp)";
+				${2} $(cat ${test}.args) > $TempOut 2> $TempError;
+			    Success=$(diff ${test}.out $TempOut | wc -l | cat);
+				Success_err=0;
+				if [ -e ${test}.stderr ]; then
+					Success_err=$(diff ${test}.stderr $TempError | wc -l | cat);
+				fi
+			    if [ $Success -ne 0 ]; then
+				    echo "Test failed: ${test}";
+				    echo "Args:";
+				    cat ${test}.args;
+                    echo "Input:";
+				    echo "Expected:";
+				    cat ${test}.out;
+				    echo "Actual:";
+			    	cat "$TempOut";
+					if [ $Success_err -ne 0 ]; then
+						echo "Expected error message:";
+						cat ${test}.err;
+						echo "Actual error message:";
+						cat "$TempError";
+					fi
+			    fi
+			    rm "$TempOut";
+				rm "$TempError";
+            fi
+		else
+            if [ -e ${test}.in ]; then
+			    TempOut="$(mktemp)";
+				TempError="$(mktemp)";
+                ${2} < ${test}.in > $TempOut 2> $TempError;
+			    Success=$(diff ${test}.out $TempOut | wc -l | cat);
+				Success_err=0;
+				if [ -e ${test}.stderr ]; then
+					Success_err=$(diff ${test}.stderr $TempError | wc -l | cat);
+				fi
+			    if [ $Success -ne 0 ]; then
+				    echo "Test failed: ${test}";
+				    echo "Args:";
+                    echo "Input:";
+                    cat ${test}.in;
+				    echo "Expected:";
+				    cat ${test}.out;
+				    echo "Actual:";
+			    	cat "$TempOut";
+					if [ $Success_err -ne 0 ]; then
+						echo "Expected error message:";
+						cat ${test}.err;
+						echo "Actual error message:";
+						cat "$TempError";
+					fi
+			    fi
+			    rm "$TempOut";
+				rm "$TempError";
+            else
+			    TempOut="$(mktemp)";
+				TempError="$(mktemp)";
+			    ${2} > $TempOut 2> $TempError;
+		    	Success=$(diff ${test}.out $TempOut | wc -l | cat);
+				Success_err=0;
+				if [ -e ${test}.stderr ]; then
+					Success_err=$(diff ${test}.stderr $TempError | wc -l | cat);
+				fi
+			    if [ $Success -ne 0 ]; then
+                    echo "Test failed: ${test}";
+				    echo "Args:";
+                    echo "Input:";
+				    echo "Expected:";
+				    cat ${test}.out;
+				    echo "Actual:";
+			    	cat "$TempOut";
+					if [ $Success_err -ne 0 ]; then
+						echo "Expected error message:";
+						cat ${test}.err;
+						echo "Actual error message:";
+						cat "$TempError";
+					fi
+                fi
+                rm "$TempOut";
+				rm "$TempError";
+            fi
+        fi
+    else
+        error_out
+    fi
+done
